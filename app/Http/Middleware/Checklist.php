@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Support\Facades\Redis;
+
+class Checklist
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
+     */
+    public function handle($request, Closure $next)
+    {
+
+        $token=$_SERVER['HTTP_TOKEN'];
+        if(isset($_SERVER['HTTP_TOKEN'])){
+            $redis_key = 'str:count:u:'.$_SERVER['HTTP_TOKEN'].':url:'.$_SERVER['REQUEST_URL'];
+            $count = Redis::get($redis_key);
+            if($count>=5) {
+                Redis::expire($redis_key, 5);
+                    $response = [
+                        'errno' => 400003,
+                        'msg' => '接口请求已达上限,请稍后再试',
+                    ];
+                }
+            }else{
+                $response=[
+                    'errno'=>400004,
+                    'msg'  =>'未授权',
+                ];
+                die(json_encode($response,JSON_UNESCAPED_UNICODE));
+            }
+        return $next($request);
+
+    }
+}
